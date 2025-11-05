@@ -297,7 +297,7 @@ EXTERNAL_HOSTNAME=${EXTERNAL_HOSTNAME:-localhost}
 KUBELET_RESOLV_CONF=${KUBELET_RESOLV_CONF:-"/etc/resolv.conf"}
 # By default only allow CORS for requests on localhost
 API_CORS_ALLOWED_ORIGINS=${API_CORS_ALLOWED_ORIGINS:-//127.0.0.1(:[0-9]+)?$,//localhost(:[0-9]+)?$}
-LOG_LEVEL=${LOG_LEVEL:-3}
+LOG_LEVEL=${LOG_LEVEL:-9}
 # Use to increase verbosity on particular files, e.g. LOG_SPEC=token_controller*=5,other_controller*=4
 LOG_SPEC=${LOG_SPEC:-""}
 LOG_DIR=${LOG_DIR:-"/tmp"}
@@ -1388,7 +1388,7 @@ if [[ "${KUBETEST_IN_DOCKER:-}" == "true" ]]; then
   mount --make-rshared /
 
   # to use containerd as kubelet container runtime we need to install cni
-  install_cni 
+  install_cni
 
   # If we are running in a cgroups v2 environment
   # we need to enable nesting

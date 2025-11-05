@@ -273,6 +273,7 @@ func (wc *watchChan) sync() error {
 		opts = append(opts, clientv3.WithLimit(defaultWatcherMaxLimit))
 		rangeEnd := clientv3.GetPrefixRangeEnd(wc.key)
 		opts = append(opts, clientv3.WithRange(rangeEnd))
+		opts = append(opts, clientv3.WithHint(fmt.Sprintf("predicate=%+v", wc.internalPred)))
 	}
 
 	var err error

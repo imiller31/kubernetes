@@ -784,6 +784,7 @@ func (s *store) GetList(ctx context.Context, key string, opts storage.ListOption
 			Revision: withRev,
 			Limit:    limit,
 			Continue: continueKey,
+			Hint:     fmt.Sprintf("predicate=%+v", opts.Predicate),
 		})
 		if err != nil {
 			if errors.Is(err, etcdrpc.ErrFutureRev) {

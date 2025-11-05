@@ -62,7 +62,7 @@ func (k Client) List(ctx context.Context, prefix string, opts ListOptions) (resp
 		rangeStart = opts.Continue
 	}
 	rangeEnd := clientv3.GetPrefixRangeEnd(prefix)
-	rangeResp, err := k.KV.Get(ctx, rangeStart, clientv3.WithRange(rangeEnd), clientv3.WithLimit(opts.Limit), clientv3.WithRev(opts.Revision))
+	rangeResp, err := k.KV.Get(ctx, rangeStart, clientv3.WithRange(rangeEnd), clientv3.WithLimit(opts.Limit), clientv3.WithRev(opts.Revision), clientv3.WithHint(opts.Hint))
 	if err != nil {
 		return resp, err
 	}

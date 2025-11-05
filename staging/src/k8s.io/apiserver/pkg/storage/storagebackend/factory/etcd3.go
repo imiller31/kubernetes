@@ -99,6 +99,7 @@ func init() {
 // https://github.com/etcd-io/etcd/blob/v3.5.4/client/v3/logger.go#L47
 func etcdClientDebugLevel() zapcore.Level {
 	envLevel := os.Getenv("ETCD_CLIENT_DEBUG")
+	log.Printf("ETCD_CLIENT_DEBUG is set to %q", envLevel)
 	if envLevel == "" || envLevel == "true" {
 		return zapcore.InfoLevel
 	}
@@ -313,6 +314,7 @@ var newETCD3Client = func(c storagebackend.TransportConfig) (*kubernetes.Client,
 		//
 		// these optional interceptors will be placed after the default ones.
 		// which seems to be what we want as the metrics will be collected on each attempt (retry)
+		grpc.WithChainUnaryInterceptor(DebugLoggerInterceptor{}.Unary()),
 		grpc.WithChainUnaryInterceptor(grpcprom.UnaryClientInterceptor),
 		grpc.WithChainStreamInterceptor(grpcprom.StreamClientInterceptor),
 	}
@@ -515,4 +517,28 @@ func startDBSizeMonitorPerEndpoint(client *clientv3.Client, interval time.Durati
 	return func() {
 		cancel()
 	}, nil
+}
+
+// DebugLoggerInterceptor is a gRPC interceptor that logs all gRPC calls at debug level.
+type DebugLoggerInterceptor struct{}
+
+// Unary implementation of the DebugLoggerInterceptor.
+func (d DebugLoggerInterceptor) Unary() grpc.UnaryClientInterceptor {
+	return func(
+		ctx context.Context,
+		method string,
+		req, reply interface{},
+		cc *grpc.ClientConn,
+		invoker grpc.UnaryInvoker,
+		opts ...grpc.CallOption,
+	) error {
+		klog.V(6).Infof("etcd gRPC call: %s, request: %+v", method, req)
+		err := invoker(ctx, method, req, reply, cc, opts...)
+		if err != nil {
+			klog.V(6).Infof("etcd gRPC call: %s, error: %v", method, err)
+		} else {
+			klog.V(6).Infof("etcd gRPC call: %s, reply: %+v", method, reply)
+		}
+		return err
+	}
 }

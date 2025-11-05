@@ -211,6 +211,8 @@ type watchRequest struct {
 	// if true, split watch events when total exceeds
 	// "--max-request-bytes" flag value + 512-byte
 	fragment bool
+	// hint is for predicate pushdown
+	hint string
 
 	// filters is the list of events to filter out
 	filters []pb.WatchCreateRequest_FilterType
@@ -317,6 +319,7 @@ func (w *watcher) Watch(ctx context.Context, key string, opts ...OpOption) Watch
 		filters:        filters,
 		prevKV:         ow.prevKV,
 		retc:           make(chan chan WatchResponse, 1),
+		hint:           ow.hint,
 	}
 
 	ok := false
@@ -539,7 +542,6 @@ func (w *watchGRPCStream) run() {
 	}
 
 	cancelSet := make(map[int64]struct{})
-
 	var cur *pb.WatchResponse
 	backoff := time.Millisecond
 	for {
@@ -556,6 +558,10 @@ func (w *watchGRPCStream) run() {
 					outc:    outc,
 					// unbuffered so resumes won't cause repeat events
 					recvc: make(chan *WatchResponse),
+				}
+
+				if wreq.hint != "" {
+					w.lg.Debug("pushing down a watch hint", zap.String("hint", wreq.hint))
 				}
 
 				ws.donec = make(chan struct{})
@@ -1023,6 +1029,7 @@ func (wr *watchRequest) toPB() *pb.WatchRequest {
 		Filters:        wr.filters,
 		PrevKv:         wr.prevKV,
 		Fragment:       wr.fragment,
+		Hint:           wr.hint,
 	}
 	cr := &pb.WatchRequest_CreateRequest{CreateRequest: req}
 	return &pb.WatchRequest{RequestUnion: cr}

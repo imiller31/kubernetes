@@ -38,3 +38,10 @@ use (
 	./staging/src/k8s.io/sample-cli-plugin
 	./staging/src/k8s.io/sample-controller
 )
+
+
+replace go.etcd.io/etcd/client/v3 => ../etcd/client/v3
+
+replace go.etcd.io/etcd/client/v3/kubernetes => ../etcd/client/v3/kubernetes
+
+replace go.etcd.io/etcd/api/v3 => ../etcd/api

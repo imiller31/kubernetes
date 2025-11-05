@@ -80,6 +80,8 @@ type Op struct {
 
 	isOptsWithFromKey bool
 	isOptsWithPrefix  bool
+
+	hint string
 }
 
 // accessors / mutators
@@ -168,6 +170,7 @@ func (op Op) toRangeRequest() *pb.RangeRequest {
 		MaxModRevision:    op.maxModRev,
 		MinCreateRevision: op.minCreateRev,
 		MaxCreateRevision: op.maxCreateRev,
+		Hint:              op.hint,
 	}
 	if op.sort != nil {
 		r.SortOrder = pb.RangeRequest_SortOrder(op.sort.Order)
@@ -448,6 +451,8 @@ func WithKeysOnly() OpOption {
 func WithCountOnly() OpOption {
 	return func(op *Op) { op.countOnly = true }
 }
+
+func WithHint(hint string) OpOption { return func(op *Op) { op.hint = hint } }
 
 // WithMinModRev filters out keys for Get with modification revisions less than the given revision.
 func WithMinModRev(rev int64) OpOption { return func(op *Op) { op.minModRev = rev } }

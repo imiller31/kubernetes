@@ -582,7 +582,7 @@ go.etcd.io/bbolt
 go.etcd.io/bbolt/errors
 go.etcd.io/bbolt/internal/common
 go.etcd.io/bbolt/internal/freelist
-# go.etcd.io/etcd/api/v3 v3.6.5
+# go.etcd.io/etcd/api/v3 v3.6.5 => ../etcd/api
 ## explicit; go 1.24
 go.etcd.io/etcd/api/v3/authpb
 go.etcd.io/etcd/api/v3/etcdserverpb
@@ -603,7 +603,7 @@ go.etcd.io/etcd/client/pkg/v3/tlsutil
 go.etcd.io/etcd/client/pkg/v3/transport
 go.etcd.io/etcd/client/pkg/v3/types
 go.etcd.io/etcd/client/pkg/v3/verify
-# go.etcd.io/etcd/client/v3 v3.6.5
+# go.etcd.io/etcd/client/v3 v3.6.5 => ../etcd/client/v3
 ## explicit; go 1.24
 go.etcd.io/etcd/client/v3
 go.etcd.io/etcd/client/v3/concurrency
@@ -1301,3 +1301,6 @@ sigs.k8s.io/structured-merge-diff/v6/value
 ## explicit; go 1.22
 sigs.k8s.io/yaml
 sigs.k8s.io/yaml/kyaml
+# go.etcd.io/etcd/client/v3 => ../etcd/client/v3
+# go.etcd.io/etcd/client/v3/kubernetes => ../etcd/client/v3/kubernetes
+# go.etcd.io/etcd/api/v3 => ../etcd/api

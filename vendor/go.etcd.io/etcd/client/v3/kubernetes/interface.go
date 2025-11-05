@@ -79,6 +79,9 @@ type ListOptions struct {
 	// It should be set to the last key from a previous ListResponse
 	// with "\x00" appended to it when paginating.
 	Continue string
+
+	//Hint is for predicate pushdown
+	Hint string
 }
 
 // CountOptions is a placeholder for potential future options for the Count operation.
