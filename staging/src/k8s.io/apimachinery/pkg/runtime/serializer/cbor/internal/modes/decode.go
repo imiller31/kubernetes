@@ -17,6 +17,8 @@ limitations under the License.
 package modes
 
 import (
+	"fmt"
+	"os"
 	"reflect"
 
 	"github.com/fxamacker/cbor/v2"
@@ -44,6 +46,34 @@ var simpleValues *cbor.SimpleValueRegistry = func() *cbor.SimpleValueRegistry {
 	return simpleValues
 }()
 
+var MaxNestedLevels = 64
+var MaxArrayElements = 1024
+var MaxMapPairs = 1024
+
+func init() {
+	// check if there are environment variable overrides for the above limits
+	if v := getEnvAsInt("KUBE_CLIENT_CBOR_MAX_NESTED_LEVELS", MaxNestedLevels); v > 0 {
+		MaxNestedLevels = v
+	}
+	if v := getEnvAsInt("KUBE_CLIENT_CBOR_MAX_ARRAY_ELEMENTS", MaxArrayElements); v > 0 {
+		MaxArrayElements = v
+	}
+	if v := getEnvAsInt("KUBE_CLIENT_CBOR_MAX_MAP_PAIRS", MaxMapPairs); v > 0 {
+		MaxMapPairs = v
+	}
+}
+
+func getEnvAsInt(name string, defaultVal int) int {
+	if valStr := os.Getenv(name); valStr != "" {
+		var val int
+		_, err := fmt.Sscanf(valStr, "%d", &val)
+		if err == nil {
+			return val
+		}
+	}
+	return defaultVal
+}
+
 // decode is the basis for the Decode mode, with no JSONUnmarshalerTranscoder
 // configured. TranscodeToJSON uses this directly rather than Decode to avoid an initialization
 // cycle between the two. Everything else should use one of the exported DecModes.
@@ -60,10 +90,10 @@ var decode cbor.DecMode = func() cbor.DecMode {
 
 		// Observed depth up to 16 in fuzzed batch/v1 CronJobList. JSON implementation limit
 		// is 10000.
-		MaxNestedLevels: 64,
+		MaxNestedLevels: MaxNestedLevels,
 
-		MaxArrayElements: 1024,
-		MaxMapPairs:      1024,
+		MaxArrayElements: MaxArrayElements,
+		MaxMapPairs:      MaxMapPairs,
 
 		// Indefinite-length sequences aren't produced by this serializer, but other
 		// implementations can.
