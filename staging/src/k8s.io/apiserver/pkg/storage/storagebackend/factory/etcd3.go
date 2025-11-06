@@ -39,6 +39,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	md "google.golang.org/grpc/metadata"
 	"k8s.io/klog/v2"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -315,6 +316,7 @@ var newETCD3Client = func(c storagebackend.TransportConfig) (*kubernetes.Client,
 		// which seems to be what we want as the metrics will be collected on each attempt (retry)
 		grpc.WithChainUnaryInterceptor(grpcprom.UnaryClientInterceptor),
 		grpc.WithChainStreamInterceptor(grpcprom.StreamClientInterceptor),
+		grpc.WithChainUnaryInterceptor(MetadataInterceptor),
 	}
 	if utilfeature.DefaultFeatureGate.Enabled(genericfeatures.APIServerTracing) {
 		tracingOpts := []otelgrpc.Option{
@@ -515,4 +517,21 @@ func startDBSizeMonitorPerEndpoint(client *clientv3.Client, interval time.Durati
 	return func() {
 		cancel()
 	}, nil
+}
+
+// MetadataInterceptor is a gRPC interceptor that logs the full grpc
+// metadata for each request. This is useful for debugging purposes.
+func MetadataInterceptor(
+	ctx context.Context,
+	method string,
+	req, reply interface{},
+	cc *grpc.ClientConn,
+	invoker grpc.UnaryInvoker,
+	opts ...grpc.CallOption,
+) error {
+	md, ok := md.FromOutgoingContext(ctx)
+	if ok {
+		klog.V(5).Infof("gRPC request metadata for method %s: %v", method, md)
+	}
+	return invoker(ctx, method, req, reply, cc, opts...)
 }

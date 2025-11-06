@@ -32,6 +32,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/kubernetes"
 	"go.opentelemetry.io/otel/attribute"
+	md "google.golang.org/grpc/metadata"
 
 	etcdrpc "go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -297,6 +298,16 @@ func (s *store) Create(ctx context.Context, key string, obj, out runtime.Object,
 		return err
 	}
 	span.AddEvent("Encode succeeded", attribute.Int("len", len(data)))
+
+	// We extract the labels and toss them on the metadata for now
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return fmt.Errorf("unable to access object metadata: %v", err)
+	}
+	labels := accessor.GetLabels()
+	for k, v := range labels {
+		ctx = md.AppendToOutgoingContext(ctx, "x-indexable-label-"+stripForHeader(k), v)
+	}
 
 	var lease clientv3.LeaseID
 	if ttl != 0 {
@@ -780,6 +791,11 @@ func (s *store) GetList(ctx context.Context, key string, opts storage.ListOption
 
 	aggregator := s.listErrAggrFactory()
 	for {
+		// TODO@ismille: this is a hack to shove the predicate into grpc metadata
+		//               we push this down into the etcd layer to do some filtering server-side
+		//               we certainly would need to modify the logic to short-circuit paging/filtering
+		ctx = addPredicateToGrpcMd(ctx, opts.Predicate)
+
 		getResp, err = s.getList(ctx, keyPrefix, opts.Recursive, kubernetes.ListOptions{
 			Revision: withRev,
 			Limit:    limit,
@@ -1129,4 +1145,39 @@ func recordDecodeError(groupResource schema.GroupResource, key string) {
 // getTypeName returns type name of an object for reporting purposes.
 func getTypeName(obj interface{}) string {
 	return reflect.TypeOf(obj).String()
+}
+
+func addPredicateToGrpcMd(ctx context.Context, pred storage.SelectionPredicate) context.Context {
+	if pred.Empty() {
+		return ctx
+	}
+	var indexFields strings.Builder
+	for i, field := range pred.IndexFields {
+		if i > 0 {
+			indexFields.WriteString(",")
+		}
+		indexFields.WriteString(stripForHeader(field))
+	}
+	var indexLabels strings.Builder
+	for i, label := range pred.IndexLabels {
+		if i > 0 {
+			indexLabels.WriteString(",")
+		}
+		indexLabels.WriteString(stripForHeader(label))
+	}
+
+	return md.AppendToOutgoingContext(
+		ctx,
+		"Label", stripForHeader(pred.Label.String()),
+		"Field", stripForHeader(pred.Field.String()),
+		"IndexLabels", indexLabels.String(),
+		"IndexFields", indexFields.String(),
+		"Limit", fmt.Sprintf("%d", pred.Limit),
+		"Continue", pred.Continue,
+		"AllowWatchBookmarks", fmt.Sprintf("%v", pred.AllowWatchBookmarks),
+	)
+}
+
+func stripForHeader(key string) string {
+	return strings.ReplaceAll(key, "/", "-")
 }
